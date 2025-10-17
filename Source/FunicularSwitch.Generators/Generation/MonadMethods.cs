@@ -145,8 +145,31 @@ internal static class MonadMethods
                     new ParameterGenerationInfo(Types.Func("A", fnReturnType(t)), "fn"),
                 ],
                 name,
-                t => $"{chainedMonad.BindMethod.Invoke([..t, "A", "B"], [$"(({chainedMonad.GenericTypeName([..t, "A"])}){p})", $"[{Constants.DebuggerStepThroughAttribute}](a) => fn(a)"])}"
-            ));
+                (t, parameters) =>
+                {
+                    if (parameters is not [var maOriginal, var fn])
+                        throw new InvalidOperationException();
+                    var ma = Raw(maOriginal.Type, p);
+
+                    return chainedMonad.BindMethod.Invoke.ToExpression(
+                        genericTypeName([..t, "B"]),
+                        [..t, "A", "B"],
+                        Brackets(
+                            Cast(
+                                chainedMonad.GenericTypeName([..t, "A"]),
+                                ma
+                            )
+                        ),
+                        Lambda(
+                            [("A", "a")],
+                            a => Invocation(
+                                genericTypeName([..t, "B"]),
+                                fn,
+                                a
+                            )
+                        )
+                    );
+                }));
     }
 
     private static IEnumerable<MethodGenerationInfo> Bind2(string name, ConstructType genericTypeName, MonadInfo chainedMonad)
@@ -209,14 +232,22 @@ internal static class MonadMethods
 
     private static IEnumerable<MethodGenerationInfo> Combine(ConstructType genericTypeName, MonadInfo chainedMonad, int maxCount)
     {
-        var mapMethod = new InvokeMethod((t, p) => $"{p[0]}.Map<{string.Join(", ", t)}>({p[1]})");
+        var mapMethod = (IReadOnlyList<TypeInfo> typeParameters, Expression ma, Expression fn) =>
+            Invocation(
+                "TODO",
+                Member(
+                    "TODO",
+                    ma,
+                    "Map",
+                    [..typeParameters]
+                ),
+                fn
+            );
 
         return Enumerable.Range(2, maxCount - 1)
             .SelectMany(ForCount);
 
         string Tuple(int count) => $"({string.Join(", ", Enumerable.Range(0, count).Select(i => $"S{i}"))})";
-
-        string CombineArgs(int count) => string.Join(", ", Enumerable.Range(0, count).Select(i => $"s{i}"));
 
         IEnumerable<MethodGenerationInfo> ForCount(int count)
         {
@@ -231,22 +262,66 @@ internal static class MonadMethods
                         genericTypeName([..t, $"S{i}"]), $"s{i}"))
                     .ToList(),
                 "Combine",
-                t => count > 2
-                    ? CombineTail(t)
-                    : CombineHead(t)
+                count > 2 ? CombineTail : CombineHead
             );
 
-            string CombineHead(IReadOnlyList<TypeInfo> t) =>
-                chainedMonad.BindMethod.Invoke([..t, "S0", "(S0, S1)"], ["s0", $"v0 => {mapMethod([..t, "S1", "(S0, S1)"], ["s1", "v1 => (v0, v1)"])}"]);
+            Expression CombineHead(IReadOnlyList<TypeInfo> t, IReadOnlyList<Expression> parameters)
+            {
+                if (parameters is not [var s0, var s1])
+                    throw new InvalidOperationException();
 
-            string CombineTail(IReadOnlyList<TypeInfo> t)
+                return chainedMonad.BindMethod.Invoke.ToExpression(
+                    "TODO",
+                    [..t, "S0", "(S0, S1)"],
+                    s0,
+                    Lambda(
+                        [("S0", "v0")],
+                        v0 => mapMethod(
+                            [..t, "S1", "(S0, S1)"],
+                            s1,
+                            Lambda(
+                                [("S1", "v1")],
+                                Raw(
+                                    "(S0, S1)",
+                                    "(v0, v1)"
+                                )
+                            )
+                        )
+                    )
+                );
+            }
+
+            Expression CombineTail(IReadOnlyList<TypeInfo> t, IReadOnlyList<Expression> parameters)
             {
                 var fromTupleType = Tuple(count - 1);
                 var toTupleType = Tuple(count);
                 var lastType = $"S{count - 1}";
-                var lastArg = $"s{count - 1}";
-                var mapFn = $"last => ({string.Join(", ", Enumerable.Range(1, count - 1).Select(i => $"prev.Item{i}"))}, last)";
-                return chainedMonad.BindMethod.Invoke([..t, fromTupleType, toTupleType], [$"Combine({CombineArgs(count - 1)})", $"prev => {mapMethod([..t, lastType, toTupleType], [lastArg, mapFn])}"]);
+                var lastArg = parameters.Last();
+                var mapFn = Lambda(
+                    [(lastType, "last")],
+                    last => Raw(
+                        "TODO",
+                        $"({string.Join(", ", Enumerable.Range(1, count - 1).Select(i => $"prev.Item{i}"))}, {last.ToCode()})"
+                    )
+                );
+
+                return chainedMonad.BindMethod.Invoke.ToExpression(
+                    "TODO",
+                    [..t, fromTupleType, toTupleType],
+                    Invocation(
+                        "TODO",
+                        Raw("TODO", "Combine"),
+                        parameters.Take(parameters.Count - 1).ToArray()
+                    ),
+                    Lambda(
+                        [(lastType, "prev")],
+                        mapMethod(
+                            [..t, lastType, toTupleType],
+                            lastArg,
+                            mapFn
+                        )
+                    )
+                );
             }
         }
     }
