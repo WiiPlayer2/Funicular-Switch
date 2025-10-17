@@ -234,9 +234,9 @@ internal static class MonadMethods
     {
         var mapMethod = (IReadOnlyList<TypeInfo> typeParameters, Expression ma, Expression fn) =>
             Invocation(
-                "TODO",
+                genericTypeName([..typeParameters.Take(typeParameters.Count - 2), typeParameters.Last()]),
                 Member(
-                    "TODO",
+                    Types.Func(typeParameters[^2], typeParameters[^1]),
                     ma,
                     "Map",
                     [..typeParameters]
@@ -247,7 +247,7 @@ internal static class MonadMethods
         return Enumerable.Range(2, maxCount - 1)
             .SelectMany(ForCount);
 
-        string Tuple(int count) => $"({string.Join(", ", Enumerable.Range(0, count).Select(i => $"S{i}"))})";
+        TypeInfo Tuple(int count) => TypeInfo.Tuple(Enumerable.Range(0, count).Select(i => TypeInfo.Parameter($"S{i}")).ToArray());
 
         IEnumerable<MethodGenerationInfo> ForCount(int count)
         {
@@ -271,20 +271,17 @@ internal static class MonadMethods
                     throw new InvalidOperationException();
 
                 return chainedMonad.BindMethod.Invoke.ToExpression(
-                    "TODO",
-                    [..t, "S0", "(S0, S1)"],
+                    genericTypeName([..t, TypeInfo.Tuple("S0", "S1")]),
+                    [..t, "S0", TypeInfo.Tuple("S0", "S1")],
                     s0,
                     Lambda(
                         [("S0", "v0")],
                         v0 => mapMethod(
-                            [..t, "S1", "(S0, S1)"],
+                            [..t, "S1", TypeInfo.Tuple("S0", "S1")],
                             s1,
                             Lambda(
                                 [("S1", "v1")],
-                                Raw(
-                                    "(S0, S1)",
-                                    "(v0, v1)"
-                                )
+                                v1 => Expressions.Tuple(v0, v1)
                             )
                         )
                     )
@@ -297,28 +294,36 @@ internal static class MonadMethods
                 var toTupleType = Tuple(count);
                 var lastType = $"S{count - 1}";
                 var lastArg = parameters.Last();
-                var mapFn = Lambda(
+                var mapFn = (Expression prev) => Lambda(
                     [(lastType, "last")],
-                    last => Raw(
-                        "TODO",
-                        $"({string.Join(", ", Enumerable.Range(1, count - 1).Select(i => $"prev.Item{i}"))}, {last.ToCode()})"
-                    )
+                    last => Expressions.Tuple([
+                        ..Enumerable.Range(1, count - 1)
+                            .Select(i => Member($"S{i}", prev, $"Item{i}")),
+                        last,
+                    ])
                 );
 
                 return chainedMonad.BindMethod.Invoke.ToExpression(
-                    "TODO",
+                    genericTypeName([..t, toTupleType]),
                     [..t, fromTupleType, toTupleType],
                     Invocation(
-                        "TODO",
-                        Raw("TODO", "Combine"),
+                        genericTypeName([..t, Tuple(count - 1)]),
+                        Raw(
+                            Types.Func([
+                                ..Enumerable.Range(0, count - 1)
+                                    .Select(i => genericTypeName([..t, $"S{i}"])),
+                                Tuple(count - 1),
+                            ]),
+                            "Combine"
+                        ),
                         parameters.Take(parameters.Count - 1).ToArray()
                     ),
                     Lambda(
                         [(lastType, "prev")],
-                        mapMethod(
+                        prev => mapMethod(
                             [..t, lastType, toTupleType],
                             lastArg,
-                            mapFn
+                            mapFn(prev)
                         )
                     )
                 );

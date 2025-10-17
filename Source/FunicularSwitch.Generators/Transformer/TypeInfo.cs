@@ -51,4 +51,11 @@ internal record TypeInfo(
         ImmutableArray<TypeInfo>.Empty);
 
     public override string ToString() => $"{(IsFullType ? "global::" : string.Empty)}{TypeName}{(Parameters.Length > 0 ? $"<{string.Join(", ", Parameters)}>" : string.Empty)}";
+
+    public static TypeInfo Tuple(params TypeInfo[] types) => new(
+        $"({string.Join(", ", types.AsEnumerable())})",
+        false,
+        false,
+        ImmutableArray<TypeInfo>.Empty
+    );
 }

@@ -15,6 +15,8 @@ internal abstract record Expression(TypeInfo Type)
     public record Member(TypeInfo Type, Expression Expression, string Name, IReadOnlyList<TypeInfo> TypeParameters) : Expression(Type);
 
     public record Raw(TypeInfo Type, string Code) : Expression(Type);
+
+    public record Tuple(IReadOnlyList<Expression> Expressions) : Expression(TypeInfo.Tuple(Expressions.Select(x => x.Type).ToArray()));
 }
 
 internal static class Expressions
@@ -41,6 +43,7 @@ internal static class Expressions
         Expression.Lambda lambda => lambda.ToCode(),
         Expression.Brackets brackets => brackets.ToCode(),
         Expression.Member member => member.ToCode(),
+        Expression.Tuple tuple => tuple.ToCode(),
         _ => throw new ArgumentOutOfRangeException(),
     };
 
@@ -61,10 +64,15 @@ internal static class Expressions
             ? string.Empty
             : $"<{string.Join(", ", member.TypeParameters)}>")}";
 
+    public static string ToCode(this Expression.Tuple tuple) =>
+        $"({string.Join(", ", tuple.Expressions.Select(x => x.ToCode()))})";
+
     public static Expression.Raw ToExpression(
         this InvokeMethod invokeMethod,
         TypeInfo type,
         IReadOnlyList<TypeInfo> typeParameters,
         params Expression[] arguments) =>
         Raw(type, invokeMethod(typeParameters, arguments.Select(x => x.ToCode()).ToList()));
+
+    public static Expression.Tuple Tuple(params Expression[] expressions) => new(expressions);
 }
