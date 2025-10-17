@@ -342,8 +342,25 @@ internal static class MonadMethods
                 new ParameterGenerationInfo(genericTypeName([..t, genericTypeName([..t, "A"])]), "ma", true),
             ],
             name,
-            t => $"{p}.{monad.BindMethod.Name}([{Constants.DebuggerStepThroughAttribute}](a) => a)"
-        ));
+            (t, parameters) =>
+            {
+                if (parameters is not [var maOriginal])
+                    throw new InvalidOperationException();
+                var ma = Raw(maOriginal.Type, p);
+
+                return Invocation(
+                    genericTypeName([..t, "A"]),
+                    Member(
+                        Types.Func(genericTypeName([..t, genericTypeName([..t, "A"])]), genericTypeName([..t, "A"])),
+                        ma,
+                        monad.BindMethod.Name
+                    ),
+                    Lambda(
+                        [(genericTypeName([..t, "A"]), "a")],
+                        a => a
+                    )
+                );
+            }));
 
     private static IEnumerable<MethodGenerationInfo> Lift(ConstructType genericTypeName, MonadInfo chainedMonad, MonadInfo outerMonad, MonadInfo innerMonad) =>
         AsyncVariants("ma", p => Create(
