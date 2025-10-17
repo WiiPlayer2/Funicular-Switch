@@ -1,4 +1,5 @@
 using FunicularSwitch.Generators.Transformer;
+using static FunicularSwitch.Generators.Generation.Semantic.Expressions;
 
 namespace FunicularSwitch.Generators.Generation;
 
@@ -150,7 +151,49 @@ internal static class MonadMethods
                     new ParameterGenerationInfo(Types.Func("A", "B", "C"), "selector"),
                 ],
                 name,
-                t => $"{p}.SelectMany([{Constants.DebuggerStepThroughAttribute}](a) => (({genericTypeName([..t, "B"])})fn(a)).Map([{Constants.DebuggerStepThroughAttribute}](b) => selector(a, b)))"
+                t => Invocation(
+                    genericTypeName([..t, "C"]),
+                    Member(
+                        Types.Func("A", genericTypeName([..t, "C"])),
+                        Raw(genericTypeName([..t, "A"]), p),
+                        "SelectMany"
+                    ),
+                    Lambda(
+                        [("A", "a")],
+                        Invocation(
+                            genericTypeName([..t, "C"]),
+                            Member(
+                                Types.Func("B", genericTypeName([..t, "C"])),
+                                Brackets(
+                                    Cast(
+                                        genericTypeName([..t, "B"]),
+                                        Invocation(
+                                            fnReturnType(t),
+                                            Raw(
+                                                Types.Func("A", fnReturnType(t)),
+                                                "fn"
+                                            ),
+                                            Raw("A", "a")
+                                        )
+                                    )
+                                ),
+                                "Map"
+                            ),
+                            Lambda(
+                                [("B", "b")],
+                                Invocation(
+                                    "C",
+                                    Raw(
+                                        Types.Func("A", "B", "C"),
+                                        "selector"
+                                    ),
+                                    Raw("A", "a"),
+                                    Raw("B", "b")
+                                )
+                            )
+                        )
+                    )
+                ).ToCode()
             ));
     }
 
