@@ -27,6 +27,8 @@ internal static class Expressions
 
     public static Expression.Lambda Lambda(IReadOnlyList<(TypeInfo Type, string Name)> parameters, Expression expression) => new(parameters, expression);
 
+    public static Expression.Lambda Lambda(IReadOnlyList<(TypeInfo Type, string Name)> parameters, Func<Expression, Expression> expressionFn) => new(parameters, expressionFn(Raw(parameters[0].Type, parameters[0].Name)));
+
     public static Expression.Member Member(TypeInfo type, Expression expression, string name) => new(type, expression, name);
 
     public static Expression.Raw Raw(TypeInfo type, string code) => new(type, code);

@@ -1,3 +1,4 @@
+using FunicularSwitch.Generators.Generation.Semantic;
 using FunicularSwitch.Generators.Transformer;
 using static FunicularSwitch.Generators.Generation.Semantic.Expressions;
 
@@ -5,6 +6,24 @@ namespace FunicularSwitch.Generators.Generation;
 
 internal static class MonadMethods
 {
+    public static MethodGenerationInfo Create(
+        int arity,
+        string returnTypeParameter,
+        ConstructType genericTypeName,
+        IReadOnlyList<string> typeParameters,
+        Func<IReadOnlyList<TypeInfo>, IReadOnlyList<ParameterGenerationInfo>> parameters,
+        string name,
+        Func<IReadOnlyList<TypeInfo>, IReadOnlyList<Expression>, Expression> invoke) =>
+        Create(
+            arity,
+            returnTypeParameter,
+            genericTypeName,
+            typeParameters,
+            parameters,
+            name,
+            t => invoke(t, parameters(t).Select(p => Raw(p.Type, p.Name)).ToList()).ToCode()
+        );
+
     public static MethodGenerationInfo Create(
         int arity,
         string returnTypeParameter,
@@ -151,50 +170,41 @@ internal static class MonadMethods
                     new ParameterGenerationInfo(Types.Func("A", "B", "C"), "selector"),
                 ],
                 name,
-                t => Invocation(
-                    genericTypeName([..t, "C"]),
-                    Member(
-                        Types.Func("A", genericTypeName([..t, "C"])),
-                        Raw(genericTypeName([..t, "A"]), p),
-                        "SelectMany"
-                    ),
-                    Lambda(
-                        [("A", "a")],
-                        Invocation(
-                            genericTypeName([..t, "C"]),
-                            Member(
-                                Types.Func("B", genericTypeName([..t, "C"])),
-                                Brackets(
-                                    Cast(
-                                        genericTypeName([..t, "B"]),
-                                        Invocation(
-                                            fnReturnType(t),
-                                            Raw(
-                                                Types.Func("A", fnReturnType(t)),
-                                                "fn"
-                                            ),
-                                            Raw("A", "a")
+                (t, parameters) =>
+                {
+                    if (parameters is not [var maOriginal, var fn, var selector])
+                        throw new InvalidOperationException();
+                    var ma = Raw(maOriginal.Type, p);
+
+                    return Invocation(
+                        genericTypeName([..t, "C"]),
+                        Member(
+                            Types.Func("A", genericTypeName([..t, "C"])),
+                            ma,
+                            "SelectMany"
+                        ),
+                        Lambda(
+                            [("A", "a")],
+                            a => Invocation(
+                                genericTypeName([..t, "C"]),
+                                Member(
+                                    Types.Func("B", genericTypeName([..t, "C"])),
+                                    Brackets(
+                                        Cast(
+                                            genericTypeName([..t, "B"]),
+                                            Invocation(fnReturnType(t), fn, a)
                                         )
-                                    )
-                                ),
-                                "Map"
-                            ),
-                            Lambda(
-                                [("B", "b")],
-                                Invocation(
-                                    "C",
-                                    Raw(
-                                        Types.Func("A", "B", "C"),
-                                        "selector"
                                     ),
-                                    Raw("A", "a"),
-                                    Raw("B", "b")
+                                    "Map"
+                                ),
+                                Lambda(
+                                    [("B", "b")],
+                                    b => Invocation("C", selector, a, b)
                                 )
                             )
                         )
-                    )
-                ).ToCode()
-            ));
+                    );
+                }));
     }
 
     private static IEnumerable<MethodGenerationInfo> Combine(ConstructType genericTypeName, MonadInfo chainedMonad, int maxCount)
