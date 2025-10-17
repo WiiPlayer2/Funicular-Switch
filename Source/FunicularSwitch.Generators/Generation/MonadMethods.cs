@@ -396,6 +396,10 @@ internal static class MonadMethods
             ["A"],
             _ => [new ParameterGenerationInfo("A", "a")],
             chainedMonad.ReturnMethod.Name,
-            t => chainedMonad.ReturnMethod.Invoke([..t, "A"], [p])
+            (t, parameters) => chainedMonad.ReturnMethod.Invoke.ToExpression(
+                genericTypeName([..t, "A"]),
+                [..t, "A"],
+                Raw(parameters[0].Type, p)
+            )
         ));
 }
