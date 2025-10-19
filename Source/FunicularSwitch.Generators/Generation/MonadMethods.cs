@@ -385,8 +385,31 @@ internal static class MonadMethods
                 new ParameterGenerationInfo(Types.Func("A", "B"), "fn"),
             ],
             name,
-            t => $"{p}.{monad.BindMethod.Name}([{Constants.DebuggerStepThroughAttribute}](a) => {monad.ReturnMethod.Invoke([..t, "B"], ["fn(a)"])})"
-        ));
+            (t, parameters) =>
+            {
+                var (maOriginal, fn) = parameters;
+                var ma = Raw(maOriginal.Type, p);
+                return Invocation(
+                    genericTypeName([..t, "B"]),
+                    Member(
+                        Types.Func("A", genericTypeName([..t, "B"])),
+                        ma,
+                        monad.BindMethod.Name
+                    ),
+                    Lambda(
+                        [("A", "a")],
+                        a => monad.ReturnMethod.Invoke.ToExpression(
+                            genericTypeName([..t, "B"]),
+                            [..t, "B"],
+                            Invocation(
+                                Types.Func("A", "B"),
+                                fn,
+                                a
+                            )
+                        )
+                    )
+                );
+            }));
 
     private static IEnumerable<MethodGenerationInfo> Return(ConstructType genericTypeName, MonadInfo chainedMonad) =>
         AsyncVariants("a", p => Create(

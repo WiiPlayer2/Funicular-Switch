@@ -25,6 +25,9 @@ internal static class Expressions
 
     public static Expression.Cast Cast(TypeInfo type, Expression expression) => new(type, expression);
 
+    public static void Deconstruct<T>(this IReadOnlyList<T> list, out T first, out T second) =>
+        (first, second) = (list[0], list[1]);
+
     public static Expression.Invocation Invocation(TypeInfo type, Expression expression, params Expression[] arguments) => new(type, expression, arguments);
 
     public static Expression.Lambda Lambda(IReadOnlyList<(TypeInfo Type, string Name)> parameters, Expression expression) => new(parameters, expression);
