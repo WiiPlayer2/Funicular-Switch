@@ -370,8 +370,23 @@ internal static class MonadMethods
             ["A"],
             t => [new ParameterGenerationInfo(outerMonad.GenericTypeName([..t.Take(outerMonad.ExtraArity), "A"]), "ma")],
             "Lift",
-            t => $"{outerMonad.BindMethod.Invoke([..t.Take(outerMonad.ExtraArity), "A", $"{innerMonad.GenericTypeName([..t.Skip(outerMonad.ExtraArity), "A"])}"], [p, $"[{Constants.DebuggerStepThroughAttribute}](a) => {chainedMonad.ReturnMethod.Invoke([..t, "A"], ["a"])}"])}"
-        ));
+            (t, parameters) =>
+            {
+                var ma = Raw(parameters[0].Type, p);
+                return outerMonad.BindMethod.Invoke.ToExpression(
+                    genericTypeName([..t, "A"]),
+                    [..t.Take(outerMonad.ExtraArity), "A", $"{innerMonad.GenericTypeName([..t.Skip(outerMonad.ExtraArity), "A"])}"],
+                    ma,
+                    Lambda(
+                        [("A", "a")],
+                        a => chainedMonad.ReturnMethod.Invoke.ToExpression(
+                            genericTypeName([..t, "A"]),
+                            [..t, "A"],
+                            a
+                        )
+                    )
+                );
+            }));
 
     private static IEnumerable<MethodGenerationInfo> Map(string name, ConstructType genericTypeName, MonadInfo monad) =>
         AsyncVariants("ma", p => Create(
