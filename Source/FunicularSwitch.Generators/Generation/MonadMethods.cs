@@ -28,7 +28,13 @@ internal static class MonadMethods
             allTypeParameters,
             parameters(extraTypeParameters),
             name,
-            ((Func<IReadOnlyList<TypeInfo>, string>) (t => invoke(t, parameters(t).Select(p => Raw(p.Type, p.Name)).ToList()).ToCode()))(extraTypeParameters));
+            invoke(
+                extraTypeParameters,
+                parameters(extraTypeParameters)
+                    .Select(p => Raw(p.Type, p.Name))
+                    .ToList()
+            )
+        );
     }
 
     public static IReadOnlyList<MethodGenerationInfo> CreateCoreMonadMethods(

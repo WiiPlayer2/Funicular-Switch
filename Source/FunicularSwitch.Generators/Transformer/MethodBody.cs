@@ -1,8 +1,10 @@
+using FunicularSwitch.Generators.Generation.Semantic;
+
 namespace FunicularSwitch.Generators.Transformer;
 
-internal readonly record struct MethodBody(string Value)
+internal readonly record struct MethodBody(Expression Expression)
 {
-    public static implicit operator MethodBody(string value) => new(value);
+    public static implicit operator MethodBody(Expression expression) => new(expression);
 
-    public override string ToString() => Value;
+    public override string ToString() => Expression.ToCode();
 }
