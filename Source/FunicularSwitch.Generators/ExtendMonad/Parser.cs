@@ -1,5 +1,6 @@
 using FunicularSwitch.Generators.Common;
 using FunicularSwitch.Generators.Generation;
+using FunicularSwitch.Generators.Generation.Semantic;
 using FunicularSwitch.Generators.Parsing;
 using FunicularSwitch.Generators.Transformer;
 using Microsoft.CodeAnalysis;
@@ -28,7 +29,7 @@ internal class Parser
                             new ParameterGenerationInfo("A", string.Empty),
                         ],
                         monadInfo.ReturnMethod.Name,
-                        _ => string.Empty
+                        (_, _) => Expressions.Raw("IGNOREME", string.Empty)
                     ),
                     MonadMethods.Create(
                         monadInfo.ExtraArity,
@@ -41,13 +42,13 @@ internal class Parser
                             new ParameterGenerationInfo(Types.Func("A", monadInfo.GenericTypeName([..t, "B"])), string.Empty),
                         ],
                         monadInfo.BindMethod.Name,
-                        _ => string.Empty
+                        (_, _) => Expressions.Raw("IGNOREME", string.Empty)
                     ),
                 ]
             )
         )
         select new ExtendMonadInfo(
             targetSymbol.FullTypeNameWithNamespace(),
-            targetSymbol.GetFullNamespace(),
+            targetSymbol.GetFullNamespace()!,
             staticMonadGenerationInfo);
 }

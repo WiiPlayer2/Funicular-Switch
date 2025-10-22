@@ -13,25 +13,7 @@ internal static class MonadMethods
         IReadOnlyList<string> typeParameters,
         Func<IReadOnlyList<TypeInfo>, IReadOnlyList<ParameterGenerationInfo>> parameters,
         string name,
-        Func<IReadOnlyList<TypeInfo>, IReadOnlyList<Expression>, Expression> invoke) =>
-        Create(
-            arity,
-            returnTypeParameter,
-            genericTypeName,
-            typeParameters,
-            parameters,
-            name,
-            t => invoke(t, parameters(t).Select(p => Raw(p.Type, p.Name)).ToList()).ToCode()
-        );
-
-    public static MethodGenerationInfo Create(
-        int arity,
-        string returnTypeParameter,
-        ConstructType genericTypeName,
-        IReadOnlyList<string> typeParameters,
-        Func<IReadOnlyList<TypeInfo>, IReadOnlyList<ParameterGenerationInfo>> parameters,
-        string name,
-        Func<IReadOnlyList<TypeInfo>, string> invoke)
+        Func<IReadOnlyList<TypeInfo>, IReadOnlyList<Expression>, Expression> invoke)
     {
         var extraTypeParameters = Enumerable.Range(0, arity)
             .Select(i => $"T{i}")
@@ -46,7 +28,7 @@ internal static class MonadMethods
             allTypeParameters,
             parameters(extraTypeParameters),
             name,
-            invoke(extraTypeParameters));
+            ((Func<IReadOnlyList<TypeInfo>, string>) (t => invoke(t, parameters(t).Select(p => Raw(p.Type, p.Name)).ToList()).ToCode()))(extraTypeParameters));
     }
 
     public static IReadOnlyList<MethodGenerationInfo> CreateCoreMonadMethods(
