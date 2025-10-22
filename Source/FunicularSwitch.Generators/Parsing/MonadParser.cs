@@ -1,5 +1,6 @@
 using System.Collections.Immutable;
 using FunicularSwitch.Generators.Common;
+using FunicularSwitch.Generators.Generation.Semantic;
 using FunicularSwitch.Generators.Transformer;
 using Microsoft.CodeAnalysis;
 using TypeInfo = FunicularSwitch.Generators.Transformer.TypeInfo;
@@ -29,7 +30,7 @@ internal static class MonadParser
             returnMethodInvoke);
         var bindMethodInfo = new MethodInfo(
             bindMethodName,
-            (t, p) => bindMethodInvoke(t[0], t[1], p[0], p[1]));
+            (t, p) => bindMethodInvoke(t[0], t[1], p[0].ToCode(), p[1].ToCode()));
 
         return new MonadInfo(
             genericTypeInfo.Construct,
@@ -63,8 +64,8 @@ internal static class MonadParser
         {
             var name = returnMethod.Name;
             var func = returnMethod.ContainingType.IsGenericType
-                ? new InvokeMethod((t, p) => $"{TypeInfo.From(returnMethod.ContainingType).Construct(t)}.{name}({p[0]})")
-                : (t, p) => $"{TypeInfo.From(returnMethod.ContainingType)}.{name}<{string.Join(", ", t)}>({p[0]})";
+                ? new InvokeMethod((t, p) => $"{TypeInfo.From(returnMethod.ContainingType).Construct(t)}.{name}({p[0].ToCode()})")
+                : (t, p) => $"{TypeInfo.From(returnMethod.ContainingType)}.{name}<{string.Join(", ", t)}>({p[0].ToCode()})";
             return (name, func);
         }
     }
@@ -85,11 +86,11 @@ internal static class MonadParser
             var transformedMonadData = Parser.GetTransformedMonadSchema(genericMonadType, TransformMonadAttribute.From(transformMonadAttribute), cancellationToken).Value!;
             var returnMethodInfo = transformedMonadData.Monad.ReturnMethod with
             {
-                Invoke = (_, p) => $"global::{transformedMonadData.FullTypeName}.{transformedMonadData.Monad.ReturnMethod.Name}({p[0]})",
+                Invoke = (_, p) => $"global::{transformedMonadData.FullTypeName}.{transformedMonadData.Monad.ReturnMethod.Name}({p[0].ToCode()})",
             };
             var bindMethodInfo = transformedMonadData.Monad.BindMethod with
             {
-                Invoke = (_, p) => $"{p[0]}.{transformedMonadData.Monad.BindMethod.Name}({p[1]})",
+                Invoke = (_, p) => $"{p[0].ToCode()}.{transformedMonadData.Monad.BindMethod.Name}({p[1].ToCode()})",
             };
             return new MonadInfo(
                 transformedMonadData.FullGenericType,
@@ -143,10 +144,10 @@ internal static class MonadParser
         var typeInfo = TypeInfo.From(resultType);
         var returnMethod = new MethodInfo(
             "Ok",
-            (t, p) => $"{typeInfo.Construct(t)}.Ok({p[0]})");
+            (t, p) => $"{typeInfo.Construct(t)}.Ok({p[0].ToCode()})");
         var bindMethod = new MethodInfo(
             "Bind",
-            (_, p) => $"{p[0]}.Bind({p[1]})");
+            (_, p) => $"{p[0].ToCode()}.Bind({p[1].ToCode()})");
         return new MonadInfo(
             typeInfo.Construct,
             0,

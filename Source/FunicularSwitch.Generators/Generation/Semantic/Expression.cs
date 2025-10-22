@@ -75,7 +75,7 @@ internal static class Expressions
         TypeInfo type,
         IReadOnlyList<TypeInfo> typeParameters,
         params Expression[] arguments) =>
-        Raw(type, invokeMethod(typeParameters, arguments.Select(x => x.ToCode()).ToList()));
+        Raw(type, invokeMethod(typeParameters, arguments));
 
     public static Expression.Tuple Tuple(params Expression[] expressions) => new(expressions);
 }

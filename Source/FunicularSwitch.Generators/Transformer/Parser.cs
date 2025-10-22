@@ -1,5 +1,6 @@
 using FunicularSwitch.Generators.Common;
 using FunicularSwitch.Generators.Generation;
+using FunicularSwitch.Generators.Generation.Semantic;
 using FunicularSwitch.Generators.Parsing;
 using Microsoft.CodeAnalysis;
 
@@ -64,7 +65,11 @@ internal static class Parser
             new MethodInfo(
                 DetermineMethodName(outer.ReturnMethod.Name, inner.ReturnMethod.Name, "Return"),
                 (t, p) =>
-                    $"{outer.ReturnMethod.Invoke([..t.Take(outer.ExtraArity), inner.GenericTypeName([..t.Skip(outer.ExtraArity)])], [inner.ReturnMethod.Invoke([..t.Skip(outer.ExtraArity)], p)])}");
+                    outer.ReturnMethod.Invoke(
+                        [..t.Take(outer.ExtraArity), inner.GenericTypeName([..t.Skip(outer.ExtraArity)])],
+                        [inner.ReturnMethod.Invoke.ToExpression(ChainGenericTypeName(outer, inner)(t), [..t.Skip(outer.ExtraArity)], [..p])]
+                    )
+            );
 
         static MethodInfo TransformBind(MonadInfo outer, MonadInfo inner, string transformerTypeName, ConstructType outerInterfaceImplName)
         {
@@ -82,8 +87,8 @@ internal static class Parser
                         ..extraTypeArgs.Take(outer.ExtraArity),
                         inner.GenericTypeName([..extraTypeArgs.Skip(outer.ExtraArity), fromType]),
                     ]);
-                    var ma = $"({fromInterfaceType})({fromNestedType}){p[0]}";
-                    var fn = $"[{Constants.DebuggerStepThroughAttribute}](a) => ({outerInterfaceImplName([..t.Take(outer.ExtraArity), inner.GenericTypeName([..t.Skip(outer.ExtraArity).Take(inner.ExtraArity), toType])])})(new global::System.Func<{fromType}, {chainedGenericType([..t.Take(outer.ExtraArity + inner.ExtraArity), toType])}>({p[1]}).Invoke(a))"; // A -> Monad<X<B>>
+                    var ma = $"({fromInterfaceType})({fromNestedType}){p[0].ToCode()}";
+                    var fn = $"[{Constants.DebuggerStepThroughAttribute}](a) => ({outerInterfaceImplName([..t.Take(outer.ExtraArity), inner.GenericTypeName([..t.Skip(outer.ExtraArity).Take(inner.ExtraArity), toType])])})(new global::System.Func<{fromType}, {chainedGenericType([..t.Take(outer.ExtraArity + inner.ExtraArity), toType])}>({p[1].ToCode()}).Invoke(a))"; // A -> Monad<X<B>>
 
                     var call = $"{transformerTypeName}.BindT<{string.Join(", ", t.Skip(outer.ExtraArity))}>({ma}, {fn}).Cast<{chainedGenericType([..t.Take(outer.ExtraArity + inner.ExtraArity), toType])}>()";
                     return call;

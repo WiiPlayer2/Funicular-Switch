@@ -12,7 +12,7 @@ namespace FunicularSwitch.Test
             [global::System.Diagnostics.Contracts.PureAttribute, global::System.Diagnostics.DebuggerStepThroughAttribute]
             public global::FunicularSwitch.Transformers.Monad<B> Return<B>(B a) => (Impl__FunicularSwitch_Test_MonadA<T0, T1, T2, B>)global::FunicularSwitch.Test.MonadA.Return<T0, T1, T2, B>(a);
             [global::System.Diagnostics.Contracts.PureAttribute, global::System.Diagnostics.DebuggerStepThroughAttribute]
-            public global::FunicularSwitch.Transformers.Monad<B> Bind<B>(global::System.Func<A, global::FunicularSwitch.Transformers.Monad<B>> fn) => (Impl__FunicularSwitch_Test_MonadA<T0, T1, T2, B>)global::FunicularSwitch.Test.MonadA.Bind(M, a => (global::FunicularSwitch.Test.MonadA<T0, T1, T2, B>)(Impl__FunicularSwitch_Test_MonadA<T0, T1, T2, B>)fn(a));
+            public global::FunicularSwitch.Transformers.Monad<B> Bind<B>(global::System.Func<A, global::FunicularSwitch.Transformers.Monad<B>> fn) => (Impl__FunicularSwitch_Test_MonadA<T0, T1, T2, B>)global::FunicularSwitch.Test.MonadA.Bind(M, [global::System.Diagnostics.DebuggerStepThroughAttribute](a) => (global::FunicularSwitch.Test.MonadA<T0, T1, T2, B>)(Impl__FunicularSwitch_Test_MonadA<T0, T1, T2, B>)fn(a));
             [global::System.Diagnostics.Contracts.PureAttribute, global::System.Diagnostics.DebuggerStepThroughAttribute]
             public B Cast<B>() => (B)(object)M;
         }
