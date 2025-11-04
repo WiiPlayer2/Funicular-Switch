@@ -25,7 +25,7 @@
             [global::System.Diagnostics.Contracts.PureAttribute, global::System.Diagnostics.DebuggerStepThroughAttribute]
             public global::FunicularSwitch.Transformers.Monad<B> Return<B>(B a) => (Impl__FunicularSwitch_Generators_Consumer_Result<B>)global::FunicularSwitch.Generators.Consumer.Result<B>.Ok(a);
             [global::System.Diagnostics.Contracts.PureAttribute, global::System.Diagnostics.DebuggerStepThroughAttribute]
-            public global::FunicularSwitch.Transformers.Monad<B> Bind<B>(global::System.Func<A, global::FunicularSwitch.Transformers.Monad<B>> fn) => (Impl__FunicularSwitch_Generators_Consumer_Result<B>)M.Bind(a => (global::FunicularSwitch.Generators.Consumer.Result<B>)(Impl__FunicularSwitch_Generators_Consumer_Result<B>)fn(a));
+            public global::FunicularSwitch.Transformers.Monad<B> Bind<B>(global::System.Func<A, global::FunicularSwitch.Transformers.Monad<B>> fn) => (Impl__FunicularSwitch_Generators_Consumer_Result<B>)M.Bind([global::System.Diagnostics.DebuggerStepThroughAttribute](a) => (global::FunicularSwitch.Generators.Consumer.Result<B>)(Impl__FunicularSwitch_Generators_Consumer_Result<B>)fn(a));
             [global::System.Diagnostics.Contracts.PureAttribute, global::System.Diagnostics.DebuggerStepThroughAttribute]
             public B Cast<B>() => (B)(object)M;
         }

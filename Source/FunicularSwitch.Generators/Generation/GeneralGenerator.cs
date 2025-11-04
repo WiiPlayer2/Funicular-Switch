@@ -10,7 +10,8 @@ internal static class GeneralGenerator
     public static void WriteCommonMethodAttributes(CSharpBuilder cs) =>
         cs.WriteLine($"[global::System.Diagnostics.Contracts.PureAttribute, {Constants.DebuggerStepThroughAttribute}]");
 
-    public static void WriteStaticMonad(StaticMonadGenerationInfo data, CSharpBuilder cs, CancellationToken cancellationToken)
+    public static void WriteStaticMonad(StaticMonadGenerationInfo data, CSharpBuilder cs,
+        CancellationToken cancellationToken)
     {
         using var _ = cs.StaticPartialClass(data.TypeName, Types.DetermineAccessModifier(data.Accessibility));
 
@@ -43,7 +44,8 @@ internal static class GeneralGenerator
 
         var modifiers = string.Join(" ", modifierList);
         var typeArgs = info.TypeParameters.Count > 0 ? $"<{string.Join(", ", info.TypeParameters)}>" : string.Empty;
-        var args = string.Join(", ", info.Parameters.Select(x => $"{(x.IsExtension ? "this " : string.Empty)}{x.Type} {x.Name}"));
+        var args = string.Join(", ",
+            info.Parameters.Select(x => $"{(x.IsExtension ? "this " : string.Empty)}{x.Type} {x.Name}"));
         WriteCommonMethodAttributes(cs);
         cs.WriteLine($"{modifiers} {info.ReturnType} {info.Name}{typeArgs}({args}) => {info.Body};");
     }
@@ -66,22 +68,24 @@ internal static class GeneralGenerator
         WriteCommonMethodAttributes(cs);
         cs.WriteLine($"public static implicit operator {monadTypeNameA}({typeNameA} ma) => ma.M;");
         WriteCommonMethodAttributes(cs);
-        cs.WriteLine($"public {interfaceB} Return<B>(B a) => ({typeNameB}){data.Monad.ReturnMethod.Invoke([..typeParameters, "B"], [Raw("A", "a")])};");
+        cs.WriteLine(
+            $"public {interfaceB} Return<B>(B a) => ({typeNameB}){data.Monad.ReturnMethod.Invoke([..typeParameters, "B"], [Raw("A", "a")]).ToCode()};");
         WriteCommonMethodAttributes(cs);
-        cs.WriteLine($"public {interfaceB} Bind<B>(global::System.Func<A, {interfaceB}> fn) => ({typeNameB}){data.Monad.BindMethod.Invoke.ToExpression(
-            "",
-            [..typeParameters, "A", "B"], Raw(monadTypeNameA, "M"), Lambda(
-                [("A", "a")],
-                Cast(monadTypeNameB,
-                    Cast(typeNameB,
-                        Invocation(interfaceB,
-                            Raw(Types.Func("A", interfaceB), "fn"),
-                            Raw("A", "a")
+        cs.WriteLine(
+            $"public {interfaceB} Bind<B>(global::System.Func<A, {interfaceB}> fn) => ({typeNameB}){data.Monad.BindMethod.Invoke.ToExpression(
+                "",
+                [..typeParameters, "A", "B"], Raw(monadTypeNameA, "M"), Lambda(
+                    [("A", "a")],
+                    Cast(monadTypeNameB,
+                        Cast(typeNameB,
+                            Invocation(interfaceB,
+                                Raw(Types.Func("A", interfaceB), "fn"),
+                                Raw("A", "a")
+                            )
                         )
                     )
                 )
-            )
-        ).ToCode()};");
+            ).ToCode()};");
         WriteCommonMethodAttributes(cs);
         cs.WriteLine("public B Cast<B>() => (B)(object)M;");
 

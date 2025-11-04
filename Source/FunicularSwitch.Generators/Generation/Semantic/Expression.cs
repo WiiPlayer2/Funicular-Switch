@@ -10,13 +10,16 @@ internal abstract record Expression(TypeInfo Type)
 
     public record Invocation(TypeInfo Type, Expression Method, IReadOnlyList<Expression> Arguments) : Expression(Type);
 
-    public record Lambda(IReadOnlyList<(TypeInfo Type, string Name)> Parameters, Expression Body) : Expression(Types.Func([..Parameters.Select(x => x.Type), Body.Type]));
+    public record Lambda(IReadOnlyList<(TypeInfo Type, string Name)> Parameters, Expression Body)
+        : Expression(Types.Func([..Parameters.Select(x => x.Type), Body.Type]));
 
-    public record Member(TypeInfo Type, Expression Expression, string Name, IReadOnlyList<TypeInfo> TypeParameters) : Expression(Type);
+    public record Member(TypeInfo Type, Expression Expression, string Name, IReadOnlyList<TypeInfo> TypeParameters)
+        : Expression(Type);
 
     public record Raw(TypeInfo Type, string Code) : Expression(Type);
 
-    public record Tuple(IReadOnlyList<Expression> Expressions) : Expression(TypeInfo.Tuple(Expressions.Select(x => x.Type).ToArray()));
+    public record Tuple(IReadOnlyList<Expression> Expressions)
+        : Expression(TypeInfo.Tuple(Expressions.Select(x => x.Type).ToArray()));
 }
 
 internal static class Expressions
@@ -28,13 +31,30 @@ internal static class Expressions
     public static void Deconstruct<T>(this IReadOnlyList<T> list, out T first, out T second) =>
         (first, second) = (list[0], list[1]);
 
-    public static Expression.Invocation Invocation(TypeInfo type, Expression expression, params Expression[] arguments) => new(type, expression, arguments);
+    public static Expression.Invocation
+        Invocation(TypeInfo type, Expression expression, params Expression[] arguments) =>
+        new(type, expression, arguments);
 
-    public static Expression.Lambda Lambda(IReadOnlyList<(TypeInfo Type, string Name)> parameters, Expression expression) => new(parameters, expression);
+    public static Expression.Invocation Invocation(TypeInfo type, Func<TypeInfo, Expression> expressionFn,
+        params Expression[] arguments) =>
+        Invocation(
+            type,
+            expressionFn(Types.Func([
+                ..arguments.Select(x => x.Type),
+                type
+            ])),
+            arguments
+        );
 
-    public static Expression.Lambda Lambda(IReadOnlyList<(TypeInfo Type, string Name)> parameters, Func<Expression, Expression> expressionFn) => new(parameters, expressionFn(Raw(parameters[0].Type, parameters[0].Name)));
+    public static Expression.Lambda Lambda(IReadOnlyList<(TypeInfo Type, string Name)> parameters,
+        Expression expression) => new(parameters, expression);
 
-    public static Expression.Member Member(TypeInfo type, Expression expression, string name, params TypeInfo[] typeParameters) => new(type, expression, name, typeParameters);
+    public static Expression.Lambda Lambda(IReadOnlyList<(TypeInfo Type, string Name)> parameters,
+        Func<Expression, Expression> expressionFn) =>
+        new(parameters, expressionFn(Raw(parameters[0].Type, parameters[0].Name)));
+
+    public static Expression.Member Member(TypeInfo type, Expression expression, string name,
+        params TypeInfo[] typeParameters) => new(type, expression, name, typeParameters);
 
     public static Expression.Raw Raw(TypeInfo type, string code) => new(type, code);
 
@@ -70,12 +90,13 @@ internal static class Expressions
     public static string ToCode(this Expression.Tuple tuple) =>
         $"({string.Join(", ", tuple.Expressions.Select(x => x.ToCode()))})";
 
-    public static Expression.Raw ToExpression(
+    public static Expression ToExpression(
         this InvokeMethod invokeMethod,
         TypeInfo type,
         IReadOnlyList<TypeInfo> typeParameters,
         params Expression[] arguments) =>
-        Raw(type, invokeMethod(typeParameters, arguments));
+        // Raw(type, invokeMethod(typeParameters, arguments));
+        invokeMethod(typeParameters, arguments);
 
     public static Expression.Tuple Tuple(params Expression[] expressions) => new(expressions);
 }

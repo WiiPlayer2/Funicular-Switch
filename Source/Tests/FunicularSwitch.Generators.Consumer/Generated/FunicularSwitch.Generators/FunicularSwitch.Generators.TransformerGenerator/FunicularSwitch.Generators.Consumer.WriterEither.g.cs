@@ -11,7 +11,7 @@
             [global::System.Diagnostics.Contracts.PureAttribute, global::System.Diagnostics.DebuggerStepThroughAttribute]
             public global::FunicularSwitch.Transformers.Monad<B> Return<B>(B a) => (Impl__FunicularSwitch_Generators_Consumer_Writer2<T0, B>)global::FunicularSwitch.Generators.Consumer.Writer2.Init<T0, B>(a);
             [global::System.Diagnostics.Contracts.PureAttribute, global::System.Diagnostics.DebuggerStepThroughAttribute]
-            public global::FunicularSwitch.Transformers.Monad<B> Bind<B>(global::System.Func<A, global::FunicularSwitch.Transformers.Monad<B>> fn) => (Impl__FunicularSwitch_Generators_Consumer_Writer2<T0, B>)global::FunicularSwitch.Generators.Consumer.Writer2.Bind(M, a => (global::FunicularSwitch.Generators.Consumer.Writer2<T0, B>)(Impl__FunicularSwitch_Generators_Consumer_Writer2<T0, B>)fn(a));
+            public global::FunicularSwitch.Transformers.Monad<B> Bind<B>(global::System.Func<A, global::FunicularSwitch.Transformers.Monad<B>> fn) => (Impl__FunicularSwitch_Generators_Consumer_Writer2<T0, B>)global::FunicularSwitch.Generators.Consumer.Writer2.Bind(M, [global::System.Diagnostics.DebuggerStepThroughAttribute](a) => (global::FunicularSwitch.Generators.Consumer.Writer2<T0, B>)(Impl__FunicularSwitch_Generators_Consumer_Writer2<T0, B>)fn(a));
             [global::System.Diagnostics.Contracts.PureAttribute, global::System.Diagnostics.DebuggerStepThroughAttribute]
             public B Cast<B>() => (B)(object)M;
         }

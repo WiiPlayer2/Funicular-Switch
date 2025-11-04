@@ -1,8 +1,8 @@
 using FunicularSwitch.Generators.Common;
 using FunicularSwitch.Generators.Generation;
-using FunicularSwitch.Generators.Generation.Semantic;
 using FunicularSwitch.Generators.Parsing;
 using Microsoft.CodeAnalysis;
+using static FunicularSwitch.Generators.Generation.Semantic.Expressions;
 
 namespace FunicularSwitch.Generators.Transformer;
 
@@ -18,23 +18,26 @@ internal static class Parser
 
         return
             from outerMonadData in MonadParser.ResolveMonadDataFromMonadType(outerMonadType, cancellationToken)
-            let transformerTypes = new[] {transformMonadAttribute.TransformerType}
+            let transformerTypes = new[] { transformMonadAttribute.TransformerType }
                 .Concat(transformMonadAttribute.ExtraTransformerTypes)
                 .ToList()
             from chainedMonads in transformerTypes
                 .Aggregate(
-                    (GenerationResult<IReadOnlyList<MonadInfo>>) new[] {outerMonadData},
+                    (GenerationResult<IReadOnlyList<MonadInfo>>)new[] { outerMonadData },
                     (acc, cur) =>
                         acc.Bind(acc_ =>
-                            TransformMonad(acc_.Last(), cur, cancellationToken).Map<IReadOnlyList<MonadInfo>>(transformMonad =>
-                                [..acc_, transformMonad])))
+                            TransformMonad(acc_.Last(), cur, cancellationToken)
+                                .Map<IReadOnlyList<MonadInfo>>(transformMonad =>
+                                    [..acc_, transformMonad])))
             let chainedMonad = chainedMonads.Last()
             let implementations = chainedMonads
                 .Take(chainedMonads.Count - 1)
                 .Where(x => !x.ImplementsMonadInterface)
                 .Select(GenerateImplementationForMonad)
                 .ToList()
-            let constructTransformedMonadType = transformedMonadSymbol.IsStatic ? chainedMonad.GenericTypeName : TypeInfo.From(transformedMonadSymbol).Construct
+            let constructTransformedMonadType = transformedMonadSymbol.IsStatic
+                ? chainedMonad.GenericTypeName
+                : TypeInfo.From(transformedMonadSymbol).Construct
             let transformMonadData = new TransformMonadInfo(
                 transformedMonadSymbol.GetFullNamespace()!,
                 transformedMonadSymbol.FullTypeNameWithNamespace(),
@@ -67,11 +70,15 @@ internal static class Parser
                 (t, p) =>
                     outer.ReturnMethod.Invoke(
                         [..t.Take(outer.ExtraArity), inner.GenericTypeName([..t.Skip(outer.ExtraArity)])],
-                        [inner.ReturnMethod.Invoke.ToExpression(ChainGenericTypeName(outer, inner)(t), [..t.Skip(outer.ExtraArity)], [..p])]
+                        [
+                            inner.ReturnMethod.Invoke.ToExpression(ChainGenericTypeName(outer, inner)(t),
+                                [..t.Skip(outer.ExtraArity)], [..p])
+                        ]
                     )
             );
 
-        static MethodInfo TransformBind(MonadInfo outer, MonadInfo inner, string transformerTypeName, ConstructType outerInterfaceImplName)
+        static MethodInfo TransformBind(MonadInfo outer, MonadInfo inner, string transformerTypeName,
+            ConstructType outerInterfaceImplName)
         {
             var chainedGenericType = ChainGenericTypeName(outer, inner);
 
@@ -82,15 +89,45 @@ internal static class Parser
                     var extraTypeArgs = t.Take(outer.ExtraArity + inner.ExtraArity).ToList();
                     var fromType = t.Skip(outer.ExtraArity + inner.ExtraArity).First();
                     var toType = t.Last();
-                    var fromInterfaceType = outerInterfaceImplName([..t.Take(outer.ExtraArity), inner.GenericTypeName([..t.Skip(outer.ExtraArity).Take(inner.ExtraArity), fromType])]);
+                    var fromInterfaceType = outerInterfaceImplName([
+                        ..t.Take(outer.ExtraArity),
+                        inner.GenericTypeName([..t.Skip(outer.ExtraArity).Take(inner.ExtraArity), fromType])
+                    ]);
                     var fromNestedType = outer.GenericTypeName([
                         ..extraTypeArgs.Take(outer.ExtraArity),
                         inner.GenericTypeName([..extraTypeArgs.Skip(outer.ExtraArity), fromType]),
                     ]);
-                    var ma = $"({fromInterfaceType})({fromNestedType}){p[0].ToCode()}";
-                    var fn = $"[{Constants.DebuggerStepThroughAttribute}](a) => ({outerInterfaceImplName([..t.Take(outer.ExtraArity), inner.GenericTypeName([..t.Skip(outer.ExtraArity).Take(inner.ExtraArity), toType])])})(new global::System.Func<{fromType}, {chainedGenericType([..t.Take(outer.ExtraArity + inner.ExtraArity), toType])}>({p[1].ToCode()}).Invoke(a))"; // A -> Monad<X<B>>
+                    var ma = Cast(fromInterfaceType, Cast(fromNestedType, p[0]));
+                    var fn = Lambda(
+                        [("A", "a")],
+                        a => Cast(
+                            outerInterfaceImplName([
+                                ..t.Take(outer.ExtraArity),
+                                inner.GenericTypeName([..t.Skip(outer.ExtraArity).Take(inner.ExtraArity), toType])
+                            ]),
+                            Raw("TODO",
+                                $"(new global::System.Func<{fromType}, {chainedGenericType([..t.Take(outer.ExtraArity + inner.ExtraArity), toType])}>({p[1].ToCode()}).Invoke(a))")
+                        )
+                    );
 
-                    var call = $"{transformerTypeName}.BindT<{string.Join(", ", t.Skip(outer.ExtraArity))}>({ma}, {fn}).Cast<{chainedGenericType([..t.Take(outer.ExtraArity + inner.ExtraArity), toType])}>()";
+                    var returnType = chainedGenericType([..t.Take(outer.ExtraArity + inner.ExtraArity), toType]);
+                    var call = Invocation(
+                        returnType,
+                        tm => Member(
+                            tm,
+                            Invocation(
+                                Types.Func(ma.Type, fn.Type, returnType),
+                                tm => Raw(
+                                    tm,
+                                    $"{transformerTypeName}.BindT<{string.Join(", ", t.Skip(outer.ExtraArity))}>"
+                                ),
+                                ma,
+                                fn
+                            ),
+                            "Cast",
+                            returnType
+                        )
+                    );
                     return call;
                 });
         }
